@@ -82,7 +82,7 @@ public class Client implements IModEslApi {
 	public void setCallbackExecutor(ExecutorService callbackExecutor) {
 		this.callbackExecutor = callbackExecutor;
 	}
-
+	 Channel channel = null;
 	/**
 	 * Attempt to establish an authenticated connection to the nominated FreeSWITCH ESL server socket.
 	 * This call will block, waiting for an authentication handshake to occur, or timeout after the
@@ -116,7 +116,8 @@ public class Client implements IModEslApi {
 			throw new InboundConnectionFailure("Timeout connecting to " + clientAddress);
 		}
 		// Did not timeout
-		final Channel channel = future.getChannel();
+		//final Channel channel = future.getChannel();
+		 channel = future.getChannel();
 		// But may have failed anyway
 		if (!future.isSuccess()) {
 			log.warn("Failed to connect to [{}]", clientAddress);
@@ -286,7 +287,7 @@ public class Client implements IModEslApi {
 
 		try {
 			if (clientContext.isPresent()) {
-				return new CommandResponse("exit", clientContext.get().sendApiCommand("exit", null));
+				return new CommandResponse("exit", closeFix());
 			} else {
 				throw new IllegalStateException("not connected/authenticated");
 			}
@@ -295,6 +296,20 @@ public class Client implements IModEslApi {
 		}
 
 
+	}
+	
+	
+	private EslMessage closeFix(){
+		checkConnected();
+	     try {		 
+	    	final InboundClientHandler handler = (InboundClientHandler) channel.getPipeline().getLast();	
+	      return handler.sendApiSingleLineCommand(channel, "exit").get();		
+	     // return new CommandResponse("exit", response);	
+
+
+	     } catch (Throwable t) {		    
+	       throw Throwables.propagate(t);		    
+	     }
 	}
 
 	/*
